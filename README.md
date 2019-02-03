@@ -1,14 +1,30 @@
 # ntlm_dio
 
-A new Flutter package project.
+Dart/Flutter NTLM Authentication as an interceptor for 
+[dio](https://github.com/flutterchina/dio).
 
 ## Getting Started
 
-This project is a starting point for a Dart
-[package](https://flutter.io/developing-packages/),
-a library module containing code that can be shared easily across
-multiple Flutter or Dart projects.
+Based on (and depends on) https://github.com/mrbbot/ntlm
 
-For help getting started with Flutter, view our 
-[online documentation](https://flutter.io/docs), which offers tutorials, 
-samples, guidance on mobile development, and a full API reference.
+## Example
+
+```dart
+fetch() async {
+  final baseOptions = BaseOptions();
+  final credentials = Credentials(
+    domain: 'testdomain',
+    username: 'testuser',
+    password: 'password'
+  );
+  Dio dio = Dio(baseOptions);
+  final cookieJar = CookieJar();
+  dio.interceptors.add(CookieManager(cookieJar));
+  dio.interceptors.add(NtlmInterceptor(credentials, () =>
+    Dio(baseOptions)..interceptors.add(CookieManager(cookieJar))
+  ));
+
+  final response = await dio.get(config.url);
+}
+```
+
