@@ -1,10 +1,4 @@
-import 'dart:io';
-
-import 'package:cookie_jar/cookie_jar.dart';
-import 'package:dio/dio.dart';
-import 'package:logging/logging.dart';
-import 'package:meta/meta.dart';
-import 'package:ntlm/src/messages/messages.dart';
+part of ntlm_dio;
 
 final log = new Logger("ntlm.dio_interceptor");
 
