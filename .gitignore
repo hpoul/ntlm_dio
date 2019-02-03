@@ -26,3 +26,5 @@ ios/Runner/GeneratedPluginRegistrant.*
 
 pubspec.lock
 
+/android
+/ios
