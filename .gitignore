@@ -9,8 +9,6 @@
 !.idea/dictionaries
 !.idea/dictionaries/*
 !.idea/inspectionProfiles/*
-!.idea/codeStyles
-!.idea/codeStyles/*
 *.iml
 
 .DS_Store

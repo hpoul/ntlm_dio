@@ -1,6 +1,6 @@
 name: ntlm_dio
 description: A new Flutter package project.
-version: 0.0.1
+version: 0.0.2
 author:
 homepage:
 
@@ -8,7 +8,8 @@ environment:
   sdk: ">=2.1.0 <3.0.0"
 
 dependencies:
-  dio: ^2.0.0
+  dio: ^3.0.0
+  dio_cookie_manager: ^1.0.0
   logging: ">=0.11.3+2 <1.0.0"
   ntlm:
     git:

@@ -10,14 +10,14 @@ class InvalidCredentialsException extends DioError {
   InvalidCredentialsException(this.message, this.source)
       : super(
           response: source.response,
-          message: source.message,
+          error: source.message,
           type: source.type,
-          stackTrace: source.stackTrace,
+//          stackTrace: source.stackTrace,
         );
 
   @override
   String toString() {
-    return 'InvalidCredentialsException{message=${message},source=${source}}';
+    return 'InvalidCredentialsException{message=$message,source=$source}';
   }
 }
 
@@ -27,7 +27,11 @@ class Credentials {
   String username;
   String password;
 
-  Credentials({this.domain = '', this.workstation = '', @required this.username, @required this.password});
+  Credentials(
+      {this.domain = '',
+      this.workstation = '',
+      @required this.username,
+      @required this.password});
 }
 
 typedef Dio AuthDioCreator();
@@ -39,31 +43,34 @@ class NtlmInterceptor extends Interceptor {
 
   NtlmInterceptor(this.credentials, [this.authDioCreator]);
 
-  onRequest(Options options) {
+  Future<Options> onRequest(Options options) async {
     log.finer("We are sending request. ${options.headers}");
     return options;
   }
 
-  onResponse(Response response) {
+  Future<Response> onResponse(Response response) async {
     log.fine('Intercepted onSuccess. ${response.statusCode}}');
     return response;
   }
 
-  onError(DioError e) async {
+  Future onError(DioError e) async {
     try {
-      log.finer('Intercepted onError. ${e.response?.statusCode} for request ${e.response?.request?.path}');
+      log.finer(
+          'Intercepted onError. ${e.response?.statusCode} for request ${e.response?.request?.path}');
       if (e.response?.statusCode != HttpStatus.unauthorized) {
         return e;
       }
       log.finer('headers: ${_debugHttpHeaders(e.response.headers)}');
       final authHeader = e.response.headers[HttpHeaders.wwwAuthenticateHeader];
       if (authHeader == null || authHeader.first != 'NTLM') {
-        log.warning('Got a HTTP unauthorized response code, but no NTLM authentication header was set.');
+        log.warning(
+            'Got a HTTP unauthorized response code, but no NTLM authentication header was set.');
         return e;
       }
 
       // FIXME: remove username from log.
-      log.fine('Trying to authenticate request (${credentials.domain}/${credentials.username}).');
+      log.fine(
+          'Trying to authenticate request (${credentials.domain}/${credentials.username}).');
 
       Dio authDio = authDioCreator == null ? Dio() : authDioCreator();
 //      authDio.interceptors.add(CookieManager(cookieJar));
@@ -76,16 +83,22 @@ class NtlmInterceptor extends Interceptor {
       final res1 = await (authDio
           .get(e.response.request.path,
               options: e.response.request.merge(
-                  validateStatus: (status) => status == HttpStatus.unauthorized || status == HttpStatus.ok,
-                  headers: {HttpHeaders.authorizationHeader: msg1}..addAll(e.response.request.headers)))
+                  validateStatus: (status) =>
+                      status == HttpStatus.unauthorized ||
+                      status == HttpStatus.ok,
+                  headers: {HttpHeaders.authorizationHeader: msg1}
+                    ..addAll(e.response.request.headers)))
           .catchError((error, stackTrace) {
         log.fine('Error during type1 message.', error, stackTrace);
         return Future.error(error, stackTrace);
       }));
-      String res2Authenticate = res1.headers[HttpHeaders.wwwAuthenticateHeader]?.first;
-      log.finer('Received type1 message response ${res2Authenticate}');
+      String res2Authenticate =
+          res1.headers[HttpHeaders.wwwAuthenticateHeader]?.first;
+      log.finer('Received type1 message response $res2Authenticate');
       if (res2Authenticate == null) {
-        log.warning('No Authenticate header found for response from ${e.response.request.path}.', e, e.stackTrace);
+        log.warning(
+            'No Authenticate header found for response from ${e.response.request.path}.',
+            e);
         return e;
       }
       if (!res2Authenticate.startsWith("NTLM ")) {
@@ -103,13 +116,19 @@ class NtlmInterceptor extends Interceptor {
 
       final res2 = await (authDio
           .get(e.response.request.path,
-              options: e.response.request
-                  .merge(headers: {HttpHeaders.authorizationHeader: msg3}..addAll(e.response.request.headers)))
+              options: e.response.request.merge(
+                  headers: {HttpHeaders.authorizationHeader: msg3}
+                    ..addAll(e.response.request.headers)))
           .catchError((error, stackTrace) {
         if (error is DioError) {
-          log.fine('Error during authentication request. ${error?.response?.headers}', error, stackTrace);
-          if (error.type == DioErrorType.RESPONSE && error.response?.statusCode == HttpStatus.unauthorized) {
-            return Future<Response<dynamic>>.error(InvalidCredentialsException('invalid authentication.', error));
+          log.fine(
+              'Error during authentication request. ${error?.response?.headers}',
+              error,
+              stackTrace);
+          if (error.type == DioErrorType.RESPONSE &&
+              error.response?.statusCode == HttpStatus.unauthorized) {
+            return Future<Response<dynamic>>.error(
+                InvalidCredentialsException('invalid authentication.', error));
           }
         }
         return Future<Response<dynamic>>.error(error, stackTrace);
@@ -120,9 +139,10 @@ class NtlmInterceptor extends Interceptor {
     } catch (e, stackTrace) {
       String msg = 'error:${e?.runtimeType}';
       if (e is DioError) {
-        msg = 'code: ${e.response?.statusCode} / ${_debugHttpHeaders(e.response?.headers)}';
+        msg =
+            'code: ${e.response?.statusCode} / ${_debugHttpHeaders(e.response?.headers)}';
       }
-      log.warning('Error while trying to authenticate. ${msg}', e, stackTrace);
+      log.warning('Error while trying to authenticate. $msg', e, stackTrace);
       rethrow;
     } finally {
       log.finer('Finished onError handler.');
@@ -134,7 +154,7 @@ void addNtlmInterceptor(Dio dio, Credentials credentials, CookieJar cookieJar) {
   dio.interceptors.add(InterceptorsWrapper());
 }
 
-String _debugHttpHeaders(HttpHeaders headers) {
+String _debugHttpHeaders(Headers headers) {
   final ret = Map<String, List<String>>();
   headers.forEach((key, values) {
     ret[key] = values;
